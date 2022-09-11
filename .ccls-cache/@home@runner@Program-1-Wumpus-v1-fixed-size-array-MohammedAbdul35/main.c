@@ -1,10 +1,9 @@
 /*
-        Program 1: Wumpus, version 1 (fixed size array)
+Program 1: Hunt the Wumpus
 
-        Mohammed Abdulaziz
-  CS211
-  Professor Dale Reed
-
+Course: CS 211, Fall 2022. Tues 4pm lab
+System: Linux using Repl.it
+Author: Mohammed Abdulaziz
 */
 #include <stdio.h>
 #include <stdlib.h> // for srand
@@ -81,131 +80,147 @@ void displayInstructions() {
 } // end displayInstructions()
 
 void choiceD(int moveNum) {
-    
-    displayCave();
+    displayCave(); // displays both cave and instructions
     displayInstructions();
-    printf("You are in room %d. \n\n",moveNum);
     return;
 }
 
 void choiceP(int playerPos) {
-    displayCave();
-    printf("You are in room %d. \n\n",playerPos);
+    displayCave(); // simply displays cave diagram
 }
 
 void choiceC(int playerPos, int wumpusPos, int pit1Pos, int pit2Pos) {
     printf("Cheating! Game elements are in the following rooms:\nPlayer Wumpus Pit1 Pit2  \n  %d      %d     %d     %d \n\n", playerPos, wumpusPos, pit1Pos, pit2Pos);
-    printf("You are in room %d. \n\n",playerPos);
+    return; // simply outputs debugging/"cheating" info
+}
+
+bool validMove(const int cavePos[4][20], int origPos, int moveTo) {
+    for (int i = 0; i < 4; i++) { 
+        if (cavePos[i][origPos - 1] == moveTo) {
+            return true; 
+        }
+    } // goes through each set at the position of the original number and compares it to the number/location user wants to move towards, if the number that the user wants to move towards matches one of the numbers in either set then it is possible to move because of adjacency on a squashed dodecahedron
+    return false;
+}
+
+void wumpusEsc(const int cavePos[4][20], int * wumpusPos) {
+    int low = cavePos[0][*wumpusPos]; // goes through the 2-D Array and finds the lowest number at the same position in each set as the wumpus location and makes wumpus's new location the lowest number. Due to the inherent adjacency checking the lowest number is also a number that is connected wumpus's current location and when this is called will let wumpus escape
+    for (int i = 0; i < 4; i++) {
+        if (cavePos[i][*wumpusPos] < low){
+            low = cavePos[i][*wumpusPos];
+        }
+    }
+    *wumpusPos = low;
     return;
 }
 
-// bool validMove(int playerPos, int moveTo) {
-    
-// }
+bool huntState(const int cavePos[4][20], int playerPos, int wumpusPos, int pit1Pos, int pit2Pos) {
+    if ((playerPos == wumpusPos) && ((wumpusPos % 2) == 0)) {
+        printf(	"You briefly feel a slimy tentacled arm as your neck is snapped. \n" "It is over.\n");
+        return true;
+    } // checks if player position matches any of the possible ways to die or interact with wumpus
+    else if (playerPos == pit1Pos) {
+        printf("Aaaaaaaaahhhhhh....   \n");
+        printf("    You fall into a pit and die. \n");
+        return true;
+    }
+    else if (playerPos == pit2Pos) {
+        printf("Aaaaaaaaahhhhhh....   \n");
+        printf("    You fall into a pit and die. \n");
+        return true;
+    }
+    else if ((playerPos == wumpusPos) && !((wumpusPos % 2) == 0)) {
+        printf( "You hear a slithering sound, as the Wumpus slips away. \n" "Whew, that was close! \n");
+        wumpusEsc(cavePos, &wumpusPos);
+        return false;
+    }
+    return false; // returns false because the function is used to see if death or interaction with wumpus has occured
+}
+
+void checkAdj(const int cavePos[4][20], int playerPos, int moveTo, int wumpusPos, int pit1Pos, int pit2Pos) {
+    if (validMove(cavePos, playerPos, wumpusPos)) {
+        printf("You smell a stench. ");
+    } // simply checks if it is possible to move to a room that has either a pit or wumpus in and if so then say appropraite statemen. Does not actually move player, just checks to see if it is possible.
+    if (validMove(cavePos, playerPos, pit1Pos)) {
+        printf("You feel a draft. ");
+    }
+    else if (validMove(cavePos, playerPos, pit2Pos)) {
+        printf("You feel a draft. ");
+    }
+    return;
+}
 
 //--------------------------------------------------------------------------------
 int main(void) {
-
-    // Seed the random number generator.  Change seed to time(0) to change output
-    // each time.
-    // srand(time(0));
     srand(1);
-    // How to get a random number
-    int cavePos[2][20];
-    int pit1Pos = rand() % 20 + 1;
-    int pit2Pos = rand() % 20 + 1;
+    int cavePos[4][20] = {
+    {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20},
+    {8, 10, 12, 14, 6, 5, 17, 1, 18, 2, 19, 3, 20, 4, 16, 15, 7, 9, 11, 13},
+    {5, 1, 2, 3, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 18, 19, 20, 16},
+    {2, 3, 4, 5, 1, 15, 8, 7, 10, 9, 12, 11, 14, 13, 6, 20, 16, 17, 18, 19}
+    }; // 2-D array with each set element position lining up such that the number in the each of the same positions for each set will all be numbers that are connected to each other in a squashed dodecahedron
+    int pit1Pos = rand() % 20 + 1; // original pit1, pit2, player, and wumpus locations
+    int pit2Pos = rand() % 20 + 1; // 
     int wumpusStart = rand() % 20 + 1;
     int wumpusPos = wumpusStart;
     int playerStart = rand() % 20 + 1; // Using +1 gives random number 1..20 rather than 0..19
     int playerPos = playerStart;
-    
-    int temp;
-    
-    int moveNum = 1;
-    char userChoice[4];
-    
-    int gameOver = 1;
-    long moveToPos;
-    printf("You are in room %d. \n\n",playerPos);
-    printf("%d. Enter your move (or 'D' for directions): ", moveNum);
-    fgets(userChoice, 5, stdin);
-    //printf("1. %c\n2. %c\n3. %c\n4. %c\n", userChoice[0], userChoice[1], userChoice[2], userChoice[3]);
-    userChoice[0] = toupper(userChoice[0]);
-
-    while ((userChoice[0] != 'X') && (gameOver != 0)) {
-    
+    int guess = 0;
+    int moveNum = 1; // counter to keep track of succesful moves
+    char userChoice[1];
+    int gameOver = 1; // 
+    int moveToPos = 0;
+    userChoice[0] = toupper(userChoice[0]); // sets choice to a standard upperCase
+    while (gameOver != 0) {
+        printf("You are in room %d. ",playerPos);
+        checkAdj(cavePos,playerPos, moveToPos, wumpusPos, pit1Pos, pit2Pos);
+        printf("\n\n%d. Enter your move (or 'D' for directions): ", moveNum);
+        scanf("%c", &userChoice[0]);
+        userChoice[0] = toupper(userChoice[0]);
         if (userChoice[0] == 'D') {
-            choiceD(playerPos);
-            printf("%d. Enter your move (or 'D' for directions): ", moveNum);
+            choiceD(playerPos); //simple options with no complicated passes are offloaded with functions for smaller main()
         }
         else if(userChoice[0] == 'P') {
             choiceP(playerPos);
-            printf("%d. Enter your move (or 'D' for directions): ", moveNum);
         }
         else if(userChoice[0] == 'C') {
             choiceC(playerPos, wumpusPos, pit1Pos, pit2Pos);
-            printf("%d. Enter your move (or 'D' for directions): ", moveNum);
         }
-        else if(userChoice[0] == 'M') {
-            
-        
+        else if (userChoice[0] == 'M') {
+            scanf(" %d", &moveToPos); // takes input and checks if move if possible to do
+            if (validMove(cavePos, playerPos, moveToPos)) {
+                playerPos = moveToPos; // once move is possible checks to see if the move made will kill player
+                if ( huntState(cavePos, playerPos, wumpusPos, pit1Pos, pit2Pos)) {
+                    userChoice[0] = 'X'; // if move made kills player exit game by setting userChoice to 'X' and breaking continuos game loop
+                    break;
+                }
+                moveNum++; // increases turn after a successful move
+            }
+            else {
+                printf("Invalid move.  Please retry. \n"); // only if user inputs something that doesnt make sense
+            }
         }
-        fgets(userChoice, 5, stdin);
-        //scanf("%c", userChoice);
-        userChoice[0] = toupper(userChoice[0]);
+        else if ( userChoice[0] == 'R') {
+            printf("Enter the room locations (1..20) for player, wumpus, pit1, and pit2: \n\n");
+            scanf("%d %d %d %d", &playerPos, &wumpusPos, &pit1Pos, &pit2Pos); //changes each of the variables to user input
+        }
+        else if (userChoice[0] == 'G') {
+            printf("Enter room (1..20) you think Wumpus is in: ");
+            scanf(" %d", &guess); // takes user guess and if matches wumpus location then user wins and game loop is broken
+            if (guess == wumpusPos) {
+                printf("You won!\n");
+                userChoice[0] = 'X';
+                break;
+            }
+        }
+        else if (userChoice[0] == 'X') {
+            break;
+        }
+        scanf("%c", &userChoice[0]);
+        userChoice[0] = toupper(userChoice[0]); 
     }
-
     if (userChoice[0] == 'X') {
-        printf("\nExiting Program ...");
+        printf("\nExiting Program ..."); // prints exiting statement
     }
-    
-        /*
-              // Below are all the messages used throughout the program. You may
-         need to change them,
-              // or move them to a different place in the code.
-              printf("1. Enter your move (or 'D' for directions): ");	// prompt
-         for user to enter their move printf("Invalid move.  Please retry. \n");
-         // message for invalid move
-
-              // Message for menu option C (cheating). Note that the printf()
-         statement below always prints 1 2 3 4
-              // for the player room, wumpus room, pit 1 room, and pit 2 room
-              printf( "Cheating! Game elements are in the following rooms: \n"
-                      "Player Wumpus Pit1 Pit2  \n"
-                      "%4d %7d %5d %5d \n\n",
-                              1,
-                              2,
-                              3,
-                              4
-                      );
-
-              // All messages possible when player is in a given room
-              printf("You are in room 1. ");
-              printf("You smell a stench. ");
-              printf("You feel a draft. ");
-              printf("\n\n");
-
-              // Message when the player dies by falling into a pit
-              printf("Aaaaaaaaahhhhhh....   \n");
-              printf("    You fall into a pit and die. \n");
-
-              // Both possible messages when the player enters a room that has
-         the Wumpus printf( "You hear a slithering sound, as the Wumpus slips
-         away. \n" "Whew, that was close! \n"); printf(	"You briefly feel a
-         slimy tentacled arm as your neck is snapped. \n" "It is over.\n");
-
-          // Both possible messages after the user guesses where the Wumpus is,
-         for a win or loss. printf("You won!\n"); printf("You lost.\n");
-
-              // Prompt for user when they choose to reset
-              printf("Enter the room locations (1..20) for player, wumpus, pit1,
-         and pit2: \n");
-
-          // Prompt for guess of where Wumpus room is
-          printf("Enter room (1..20) you think Wumpus is in: ");
-
-              // Message that prints at the end of the program
-              printf("\nExiting Program ...\n");
-        */
-        return 0;
+    return 0;
 }
